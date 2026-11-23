@@ -1,0 +1,36 @@
+Cloudbyte Server Setup Log
+Author: Christopher Galloway<br>
+Date: 23 Nov, 2026
+
+Users and Groups
+- Engineering
+Members:
+* alice
+* bob
+* carol
+* dave
+- Marketing
+Members:
+* emma
+* frank
+* grace
+- Operations
+Members:
+* henry
+* iris
+* jack
+* kate
+* leo
+- Admins
+Members:
+* kate
+* leo
+
+Shared Directories
+/shared/
+├── engineering/       engineering group, mode 770
+├── marketing/         marketing group,   mode 770
+├── operations/        operations group,  mode 770
+└── company-docs/      admins group,      mode 775
+/logs/
+└── reports/           admins group,      mode 775
