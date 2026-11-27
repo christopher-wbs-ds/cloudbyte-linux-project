@@ -48,13 +48,12 @@ while [ $# -gt 0 ]; do
 done
 
 # --- Run the cleanup -----------------------------------------------------
+# tee sends each file name to the screen (stderr) and on to wc for counting
 if [ "$PREVIEW" = true ]; then
     echo "Preview: archives older than $RETENTION_DAYS days that would be removed:"
-    find "$BACKUP_DIR" -name '*.tar.gz' -mtime +"$RETENTION_DAYS" -print
-    count=$(find "$BACKUP_DIR" -name '*.tar.gz' -mtime +"$RETENTION_DAYS" | wc -l)
+    count=$(find "$BACKUP_DIR" -name '*.tar.gz' -mtime +"$RETENTION_DAYS" -print | tee /dev/stderr | wc -l)
     echo "Preview: would remove $count archive(s)."
 else
-    count=$(find "$BACKUP_DIR" -name '*.tar.gz' -mtime +"$RETENTION_DAYS" | wc -l)
-    find "$BACKUP_DIR" -name '*.tar.gz' -mtime +"$RETENTION_DAYS" -delete
+    count=$(find "$BACKUP_DIR" -name '*.tar.gz' -mtime +"$RETENTION_DAYS" -print -delete | wc -l)
     echo "Cleanup: removed $count archive(s) older than $RETENTION_DAYS days."
 fi
