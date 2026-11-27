@@ -51,6 +51,8 @@ check "[ \"$HELP_RC\" -eq 0 ] && echo \"$HELP_OUT\" | grep -qi 'usage'" \
       "--help exits 0 and prints a Usage line"
 
 # --- Behaviour: --dry-run creates no users -------------------------------
+DRY_USERS="verify_dry_a verify_dry_b"
+for u in $DRY_USERS; do sudo userdel -r "$u" > /dev/null 2>&1; done
 DRY_CSV=$(mktemp /tmp/verify-dry-XXXXXX.csv)
 cat > "$DRY_CSV" <<'EOF'
 username,group,fullname
@@ -60,23 +62,35 @@ EOF
 sudo bash "$SCRIPT" --csv "$DRY_CSV" --dry-run > /dev/null 2>&1
 check "! getent passwd verify_dry_a >/dev/null && ! getent passwd verify_dry_b >/dev/null" \
       "--dry-run does not create any users"
+for u in $DRY_USERS; do sudo userdel -r "$u" > /dev/null 2>&1; done
 rm -f "$DRY_CSV"
 
-# --- Behaviour: real CSV run + idempotency -------------------------------
-sudo bash "$SCRIPT" --csv "$CSV" > /dev/null 2>&1
-check "getent passwd testuser1 >/dev/null && getent passwd testuser2 >/dev/null && getent passwd testuser3 >/dev/null" \
-      "CSV run creates testuser1, testuser2, testuser3"
-check "id -nG testuser1 2>/dev/null | grep -qw engineering" \
-      "testuser1 is a member of engineering"
-check "id -nG testuser2 2>/dev/null | grep -qw marketing" \
-      "testuser2 is a member of marketing"
-check "id -nG testuser3 2>/dev/null | grep -qw operations" \
-      "testuser3 is a member of operations"
+# --- Behaviour: fresh CSV run + idempotency ------------------------------
+RUN_USERS="verify_run_a verify_run_b verify_run_c"
+for u in $RUN_USERS; do sudo userdel -r "$u" > /dev/null 2>&1; done
+RUN_CSV=$(mktemp /tmp/verify-run-XXXXXX.csv)
+cat > "$RUN_CSV" <<'EOF'
+username,group,fullname
+verify_run_a,engineering,Verify Run A
+verify_run_b,marketing,Verify Run B
+verify_run_c,operations,Verify Run C
+EOF
+sudo bash "$SCRIPT" --csv "$RUN_CSV" > /dev/null 2>&1
+check "getent passwd verify_run_a >/dev/null && getent passwd verify_run_b >/dev/null && getent passwd verify_run_c >/dev/null" \
+      "CSV run creates verify_run_a, verify_run_b, verify_run_c"
+check "id -nG verify_run_a 2>/dev/null | grep -qw engineering" \
+      "verify_run_a is a member of engineering"
+check "id -nG verify_run_b 2>/dev/null | grep -qw marketing" \
+      "verify_run_b is a member of marketing"
+check "id -nG verify_run_c 2>/dev/null | grep -qw operations" \
+      "verify_run_c is a member of operations"
 
-RERUN_OUT=$(sudo bash "$SCRIPT" --csv "$CSV" 2>&1)
+RERUN_OUT=$(sudo bash "$SCRIPT" --csv "$RUN_CSV" 2>&1)
 RERUN_RC=$?
 check "[ \"$RERUN_RC\" -eq 0 ] && [ \"\$(echo \"$RERUN_OUT\" | grep -c '^Skip:')\" -ge 3 ]" \
       "Second CSV run is idempotent (three Skip lines, exit 0)"
+for u in $RUN_USERS; do sudo userdel -r "$u" > /dev/null 2>&1; done
+rm -f "$RUN_CSV"
 
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
